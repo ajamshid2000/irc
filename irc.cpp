@@ -10,19 +10,11 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sstream>
+#include "Client.hpp"
 
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 512
 
-struct Client
-{
-    int fd;
-    std::string nickname;
-    std::string username;
-    bool pass_ok;
-    bool registered;
-    std::string buffer;
-};
 
 std::string server_password;
 std::map<int, Client> clients;
@@ -30,7 +22,7 @@ std::map<std::string, int> nick_to_fd;
 
 bool is_valid_nick(const std::string &nick)
 {
-    return !nick.empty() && nick.length() <= 9;
+    return !nick.empty() && nick.length() < 1; //if nessessary mandatory length of nick could be changed!
 }
 
 void disconnect_client(int fd)
@@ -44,7 +36,10 @@ void disconnect_client(int fd)
 
 void send_msg(int fd, const std::string &msg)
 {
+    // even must be set if it is not
+    // revent check should be done before 
     send(fd, msg.c_str(), msg.length(), 0);
+    // if send was successfull even should be left for optemization.
 }
 
 void handle_command(Client &client, const std::string &line)
@@ -104,6 +99,9 @@ void handle_command(Client &client, const std::string &line)
     if (cmd == "PRIVMSG")
     {
         std::cout << "it does come inside privmsg \n";
+        // message should be stored in sent_buffer of the recepient.
+        // if message is sent to group it should be saved into sent buffer of all of recepients.
+        // the messages should comply with tcp.
         std::string pass;
         iss >> pass;
         send_msg(client.fd, pass + "\r\n");
@@ -124,22 +122,27 @@ void handle_data(int fd)
     }
 
     Client &client = clients[fd];
-    client.buffer += buf;
+    client.recieve_buffer += buf;
     
-    // if (client.buffer[1] == '\r')
+    // if (client.recieve_buffer[1] == '\r')
     size_t pos;
     int i;
      i = 0;
-    while ((pos = client.buffer.find("\r\n")) != std::string::npos)
+    while ((pos = client.recieve_buffer.find("\r\n")) != std::string::npos)
     {
         std::cout << i << " it came inwhile" << std::endl;
-        // std::cout << client.buffer << std::endl;
-        // send_msg(client.fd,  client.buffer);
-        std::string line = client.buffer.substr(0, pos);
-        client.buffer.erase(0, pos + 2);
+        // std::cout << client.recieve_buffer << std::endl;
+        // send_msg(client.fd,  client.recieve_buffer);
+        std::string line = client.recieve_buffer.substr(0, pos);
+        client.recieve_buffer.erase(0, pos + 2);
         handle_command(client, line);
         i++;
     }
+    // if (pollout event not set)
+        //the send_buffer should be checked over here if there is data pollout event must be set
+    // if pollout event set
+        // call send_msg
+        // reset the event to 
 }
 
 int main(int argc, char **argv)
@@ -218,8 +221,8 @@ int main(int argc, char **argv)
         // Clean up disconnected clients
         for (size_t i = 1; i < pollfds.size();)
         {
-            if (clients.find(pollfds[i].fd) == clients.end())
-            {
+            if (clients.find(pollfds[i].fd) == clients.end()) // the client is already deleted when the connection was closed so we check if a client in not available we delete all its data
+            { // i could delete it in the disconnect function. no neet to do all of these
                 pollfds.erase(pollfds.begin() + i);
             }
             else
