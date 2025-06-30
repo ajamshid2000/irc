@@ -1,95 +1,26 @@
-#include <iostream>
-#include <string>
-#include <vector>
-#include <map>
-#include <cstring>
-#include <cstdlib>
-#include <unistd.h>
-#include <poll.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#include <sstream>
-#include "Client.hpp"
 
-#define MAX_CLIENTS 10
-#define BUFFER_SIZE 512
+#include "Clients.hpp"
 
-
+Clients clients_bj;
 std::string server_password;
-std::map<int, Client> clients;
 std::map<std::string, int> nick_to_fd;
-
-bool is_valid_nick(const std::string &nick)
-{
-    return !nick.empty() && nick.length() < 1; //if nessessary mandatory length of nick could be changed!
-}
-
-void disconnect_client(int fd)
-{
-    std::cout << "Client disconnected (fd " << fd << ")\n";
-    if (clients[fd].nickname != "")
-        nick_to_fd.erase(clients[fd].nickname);
-    close(fd);
-    clients.erase(fd);
-}
-
-void send_msg(int fd, const std::string &msg)
-{
-    // even must be set if it is not
-    // revent check should be done before 
-    send(fd, msg.c_str(), msg.length(), 0);
-    // if send was successfull even should be left for optemization.
-}
 
 void handle_command(Client &client, const std::string &line)
 {
     std::cout << "it came inside handle commande\n";
     std::string cmd;
+    std::string rest;
     std::istringstream iss(line);
     iss >> cmd;
+    std::getline(iss, rest);
+    rest = rest.substr(rest.find(' ') + 1);
 
     if (cmd == "PASS")
-    {
-        std::string pass;
-        iss >> pass;
-        std::cout <<pass << std::endl;
-        if (pass == server_password)
-            client.pass_ok = true;
-        else
-            disconnect_client(client.fd);
-    }
+        pass(client, rest);
     else if (cmd == "NICK")
-    {
-        std::string nick;
-        iss >> nick;
-        std::cout << nick << std::endl;
-        if (!client.pass_ok)
-            disconnect_client(client.fd);
-        else if (!is_valid_nick(nick) || nick_to_fd.count(nick))
-        {
-            send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
-        }
-        else
-        {
-            if (!client.nickname.empty())
-                nick_to_fd.erase(client.nickname);
-            client.nickname = nick;
-            nick_to_fd[nick] = client.fd;
-        }
-    }
+        nick(client, rest);
     else if (cmd == "USER")
-    {
-        std::string user;
-        iss >> user;
-        std::cout << user << std::endl;
-        if (!client.pass_ok)
-            disconnect_client(client.fd);
-        else
-        {
-            client.username = user;
-        }
-    }
+        user(client, rest);
 
     if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
     {
@@ -97,15 +28,7 @@ void handle_command(Client &client, const std::string &line)
         send_msg(client.fd, ":server 001 " + client.nickname + " :Welcome to the IRC server\r\n");
     }
     if (cmd == "PRIVMSG")
-    {
-        std::cout << "it does come inside privmsg \n";
-        // message should be stored in sent_buffer of the recepient.
-        // if message is sent to group it should be saved into sent buffer of all of recepients.
-        // the messages should comply with tcp.
-        std::string pass;
-        iss >> pass;
-        send_msg(client.fd, pass + "\r\n");
-    }
+        privmsg(client, rest);
 }
 
 void handle_data(int fd)
@@ -121,13 +44,13 @@ void handle_data(int fd)
         return;
     }
 
-    Client &client = clients[fd];
+    Client &client = clients_bj.get_client(fd);
     client.recieve_buffer += buf;
-    
+
     // if (client.recieve_buffer[1] == '\r')
     size_t pos;
     int i;
-     i = 0;
+    i = 0;
     while ((pos = client.recieve_buffer.find("\r\n")) != std::string::npos)
     {
         std::cout << i << " it came inwhile" << std::endl;
@@ -139,56 +62,30 @@ void handle_data(int fd)
         i++;
     }
     // if (pollout event not set)
-        //the send_buffer should be checked over here if there is data pollout event must be set
+    // the send_buffer should be checked over here if there is data pollout event must be set
     // if pollout event set
-        // call send_msg
-        // reset the event to 
+    // call send_msg
+    // reset the event to
 }
 
 int main(int argc, char **argv)
 {
-    if (argc != 3)
-    {
-        std::cerr << "Usage: ./ircserv <port> <password>\n";
-        return 1;
-    }
-
-    int port = atoi(argv[1]);
+    int port = pars_args_and_port(argc, argv);
+    if (port < 0)
+        return 0;
     server_password = argv[2];
 
-    int listen_fd = socket(AF_INET, SOCK_STREAM, 0);
+    int listen_fd = socket_prep_and_binding(port);
     if (listen_fd < 0)
-    {
-        perror("socket");
-        return 1;
-    }
-
-    int opt = 1;
-    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
-
-    sockaddr_in addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-    addr.sin_addr.s_addr = INADDR_ANY;
-    if (bind(listen_fd, (sockaddr *)&addr, sizeof(addr)) < 0)
-    {
-        perror("bind");
-        return 1;
-    }
-
-    if (listen(listen_fd, MAX_CLIENTS) < 0)
-    {
-        perror("listen");
-        return 1;
-    }
+        return 0;
 
     std::cout << "Server started on port " << port << "\n";
-
-    std::vector<pollfd> pollfds;
+    std::vector<pollfd> &pollfds = clients_bj.get_pollfds();
     pollfds.push_back((pollfd){listen_fd, POLLIN, 0});
 
     while (true)
     {
+        std::cout << "waits before pll\n";
         if (poll(&pollfds[0], pollfds.size(), -1) < 0)
         {
             perror("poll");
@@ -204,9 +101,7 @@ int main(int argc, char **argv)
                     int client_fd = accept(listen_fd, NULL, NULL);
                     if (client_fd >= 0)
                     {
-                        pollfds.push_back((pollfd){client_fd, POLLIN, 0});
-                        clients[client_fd] = Client();
-                        clients[client_fd].fd = client_fd;
+                        clients_bj.add_client(client_fd);
                         std::cout << "New connection: fd " << client_fd << "\n";
                     }
                 }
@@ -215,19 +110,6 @@ int main(int argc, char **argv)
                     std::cout << "came in else" << std::endl;
                     handle_data(pollfds[i].fd);
                 }
-            }
-        }
-
-        // Clean up disconnected clients
-        for (size_t i = 1; i < pollfds.size();)
-        {
-            if (clients.find(pollfds[i].fd) == clients.end()) // the client is already deleted when the connection was closed so we check if a client in not available we delete all its data
-            { // i could delete it in the disconnect function. no neet to do all of these
-                pollfds.erase(pollfds.begin() + i);
-            }
-            else
-            {
-                ++i;
             }
         }
     }
