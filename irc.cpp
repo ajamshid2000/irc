@@ -1,119 +1,148 @@
 
 #include "Clients.hpp"
 
+int set_nonblocking(int fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	if (flags == -1)
+		return -1;
+
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+		return -1;
+
+	return 0;
+}
+
 Clients clients_bj;
 std::string server_password;
-std::map<std::string, int> nick_to_fd;
 
 void handle_command(Client &client, const std::string &line)
 {
-    std::cout << "it came inside handle commande\n";
-    std::string cmd;
-    std::string rest;
-    std::istringstream iss(line);
-    iss >> cmd;
-    std::getline(iss, rest);
-    rest = rest.substr(rest.find(' ') + 1);
-
-    if (cmd == "PASS")
-        pass(client, rest);
-    else if (cmd == "NICK")
-        nick(client, rest);
-    else if (cmd == "USER")
-        user(client, rest);
-
-    if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
-    {
-        client.registered = true;
-        send_msg(client.fd, ":server 001 " + client.nickname + " :Welcome to the IRC server\r\n");
-    }
-    if (cmd == "PRIVMSG")
-        privmsg(client, rest);
+	std::string cmd;
+	std::string rest;
+	std::istringstream iss(line);
+	iss >> cmd;
+	std::getline(iss, rest);
+	rest = rest.substr(1);
+	if (cmd == "CAP" && rest.substr(0, 2) == "LS")
+		send_msg(client.fd, "CAP * LS :\r\n");
+	else if (cmd == "PASS")
+		pass(client, rest);
+	else if (cmd == "NICK")
+		nick(client, rest);
+	else if (cmd == "USER")
+		user(client, rest);
+	else if (cmd == "PRIVMSG")
+		privmsg(client, rest);
+	else if (cmd == "PING")
+	{
+		send_msg(client.fd, "PONG " + rest);
+	}
+	if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
+	{
+		client.registered = true;
+		send_msg(client.fd, ":server 001 " + client.nickname + " :Welcome to the IRC server\r\n");
+	}
 }
 
 void handle_data(int fd)
 {
-    // std::cout << "came inside habdle data\n";
-    char buf[BUFFER_SIZE + 1];
-    memset(buf, 0, sizeof(buf));
-    ssize_t bytes = recv(fd, buf, BUFFER_SIZE, 0);
+	char buf[BUFFER_SIZE + 1];
+	ssize_t bytes;
+	size_t pos;
+	int i;
 
-    if (bytes <= 0)
-    {
-        disconnect_client(fd);
-        return;
-    }
+	memset(buf, 0, sizeof(buf));
+	bytes = recv(fd, buf, BUFFER_SIZE, 0);
+	if (bytes <= 0)
+	{
+		disconnect_client(fd);
+		return;
+	}
+	clients_bj.add_to_client_recieve_buffer(fd, buf);
+	i = 0;
+	while ((pos = clients_bj.get_client_recieve_buffer(fd).find("\r\n")) != std::string::npos)
+	{
+		std::string line = clients_bj.get_client_recieve_buffer(fd).substr(0,
+																		   pos);
+		clients_bj.get_client_recieve_buffer(fd).erase(0, pos + 2);
+		handle_command(clients_bj.get_client(fd), line);
+		i++;
+	}
+}
 
-    Client &client = clients_bj.get_client(fd);
-    client.recieve_buffer += buf;
+void send_data(std::vector<pollfd> &pollfds, int i)
+{
+	Client &client = clients_bj.get_client(pollfds[i].fd);
+	ssize_t sent = send(pollfds[i].fd, client.send_buffer.c_str(), client.send_buffer.size(), 0);
 
-    // if (client.recieve_buffer[1] == '\r')
-    size_t pos;
-    int i;
-    i = 0;
-    while ((pos = client.recieve_buffer.find("\r\n")) != std::string::npos)
-    {
-        std::cout << i << " it came inwhile" << std::endl;
-        // std::cout << client.recieve_buffer << std::endl;
-        // send_msg(client.fd,  client.recieve_buffer);
-        std::string line = client.recieve_buffer.substr(0, pos);
-        client.recieve_buffer.erase(0, pos + 2);
-        handle_command(client, line);
-        i++;
-    }
-    // if (pollout event not set)
-    // the send_buffer should be checked over here if there is data pollout event must be set
-    // if pollout event set
-    // call send_msg
-    // reset the event to
+	if (sent == -1)
+	{
+		if (errno != EAGAIN && errno != EWOULDBLOCK)
+			disconnect_client(pollfds[i].fd);
+	}
+	else if ((size_t)sent < client.send_buffer.size())
+	{
+		client.send_buffer = client.send_buffer.substr(sent); // Remove POLLOUT interest
+	}
+	else if ((size_t)sent == client.send_buffer.size())
+	{
+		client.send_buffer.clear();
+		pollfds[i].events &= ~POLLOUT; // Remove POLLOUT interest
+	}
+}
+
+int run_fds(std::vector<pollfd> &pollfds, int listen_fd)
+{
+	int client_fd;
+	if (poll(&pollfds[0], pollfds.size(), -1) < 0)
+	{
+		perror("poll");
+		return -1;
+	}
+	for (size_t i = 0; i < pollfds.size(); ++i)
+	{
+		if (pollfds[i].revents & POLLIN)
+		{
+			if (pollfds[i].fd == listen_fd)
+			{
+				client_fd = accept(listen_fd, NULL, NULL);
+				if (client_fd >= 0)
+				{
+					if (set_nonblocking(client_fd) < 0)
+						return -1;
+					clients_bj.add_client(client_fd);
+				}
+			}
+			else
+				handle_data(pollfds[i].fd);
+		}
+		if (pollfds[i].revents & POLLOUT)
+			send_data(pollfds, i);
+	}
+	return 0;
 }
 
 int main(int argc, char **argv)
 {
-    int port = pars_args_and_port(argc, argv);
-    if (port < 0)
-        return 0;
-    server_password = argv[2];
+	int port;
+	int listen_fd;
 
-    int listen_fd = socket_prep_and_binding(port);
-    if (listen_fd < 0)
-        return 0;
-
-    std::cout << "Server started on port " << port << "\n";
-    std::vector<pollfd> &pollfds = clients_bj.get_pollfds();
-    pollfds.push_back((pollfd){listen_fd, POLLIN, 0});
-
-    while (true)
-    {
-        std::cout << "waits before pll\n";
-        if (poll(&pollfds[0], pollfds.size(), -1) < 0)
-        {
-            perror("poll");
-            break;
-        }
-
-        for (size_t i = 0; i < pollfds.size(); ++i)
-        {
-            if (pollfds[i].revents & POLLIN)
-            {
-                if (pollfds[i].fd == listen_fd)
-                {
-                    int client_fd = accept(listen_fd, NULL, NULL);
-                    if (client_fd >= 0)
-                    {
-                        clients_bj.add_client(client_fd);
-                        std::cout << "New connection: fd " << client_fd << "\n";
-                    }
-                }
-                else
-                {
-                    std::cout << "came in else" << std::endl;
-                    handle_data(pollfds[i].fd);
-                }
-            }
-        }
-    }
-
-    close(listen_fd);
-    return 0;
+	port = pars_args_and_port(argc, argv);
+	if (port < 0)
+		return (0);
+	server_password = argv[2];
+	listen_fd = socket_prep_and_binding(port);
+	if (listen_fd < 0)
+		return (0);
+	if (set_nonblocking(listen_fd) < 0)
+		return 0;
+	std::cout << "Server started on port " << port << "\n";
+	std::vector<pollfd> &pollfds = clients_bj.get_pollfds();
+	pollfds.push_back((pollfd){listen_fd, POLLIN, 0});
+	while (true)
+		if (run_fds(pollfds, listen_fd) < 0)
+			break;
+	close(listen_fd);
+	return (0);
 }

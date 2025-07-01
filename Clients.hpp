@@ -13,6 +13,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sstream>
+#include <fcntl.h>
 
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 512
@@ -43,28 +44,17 @@ public:
     std::map<int, Client> &get_clients();
     std::vector<pollfd> &get_pollfds();
     std::string get_nick(int fd);
-    int remove_client(std::string nick);
     int remove_client(int fd);
-
-    int get_index(int fd) const;
-    int get_fd(std::string nick_name);
-    int poll_all();
-
-    int add_to_client_recieve_buffer(std::string nick);
-    int add_to_client_recieve_buffer(int fd);
-    int add_to_client_send_buffer(std::string nick);
-    int add_to_client_send_buffer(int fd);
-    int change_client_nick(std::string new_nick, std::string old_nick);
-    int change_client_nick(std::string new_nick, int fd);
-    int add_to_channel(std::string channel, std::string nick);
-    int add_to_channel(std::string channel, int fd);
-    int get_fd_of_client(Client &client);
-    int push_back_pollfd(int fd, int event);
+    void add_to_client_recieve_buffer(int fd, std::string data);
+    std::string &get_client_recieve_buffer(int fd);
+    void add_to_client_send_buffer(int fd, std::string data);
+    std::string &get_client_send_buffer(int fd);
+    std::map<std::string, int> &get_nick_to_fd();
+    int get_fd_of(std::string nick);
 };
 
 extern Clients clients_bj;
 extern std::string server_password;
-extern std::map<std::string, int> nick_to_fd;
 
 int is_all_digits(std::string str);
 int pars_args_and_port(int argc, char **argv);

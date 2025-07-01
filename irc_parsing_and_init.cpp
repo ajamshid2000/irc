@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   irc_parsing_and_init.cpp                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
+/*   By: abdul-rashed <abdul-rashed@student.42.f    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 17:22:05 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/06/30 17:22:27 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/01 02:13:02 by abdul-rashe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 
 int is_all_digits(std::string str)
 {
-    int point_found = 0;
     for (std::string::iterator begin = str.begin(); begin != str.end(); begin++)
     {
         if (!std::isdigit(*begin))
@@ -27,7 +26,7 @@ int pars_args_and_port(int argc, char **argv)
 {
     if (argc != 3)
     {
-        std::cerr << "wrong number of arguments, must have <port> <password>";
+        std::cerr << "wrong number of arguments, must have <port> <password>" << std::endl;
         return -1;
     }
     if (!is_all_digits(argv[1]))
@@ -70,6 +69,6 @@ int socket_prep_and_binding(int port)
         perror("listen");
         return -1;
     }
-    std::cout << "Server started on port " << port << "\n";
+    // std::cout << "Server started on port " << port << "\n";
     return listen_fd;
 }

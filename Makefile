@@ -1,7 +1,7 @@
-NAME = "PmergeMe"
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98
+NAME = irc
+CPPFLAGS = -Wall -Wextra -Werror
 INCLUDES = -I ./
-SRCS = main.cpp PmergeMe.cpp
+SRCS = irc.cpp commands.cpp irc_parsing_and_init.cpp Clients.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(NAME)

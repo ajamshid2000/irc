@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   commands.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
+/*   By: abdul-rashed <abdul-rashed@student.42.f    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/06/30 17:46:49 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/02 01:39:26 by abdul-rashe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,66 +31,72 @@ PRIVMSG othernick :hello privately
 
 #include "Clients.hpp"
 
-void send_msg(int fd, const std::string &msg)
+void send_msg(int fd, const std::string &message)
 {
-    // even must be set if it is not
-    // revent check should be done before
-    send(fd, msg.c_str(), msg.length(), 0);
-    // if send was successfull even should be left for optemization.
+	for (size_t i = 0; i < clients_bj.get_pollfds().size(); ++i)
+		if (clients_bj.get_pollfds()[i].fd == fd)
+		{
+			clients_bj.get_pollfds()[i].events |= POLLOUT;
+			break;
+		}
+	clients_bj.add_to_client_send_buffer(fd, "\r\n");
+	clients_bj.add_to_client_send_buffer(fd, message);
+	return;
 }
 
 bool is_valid_nick(const std::string &nick)
 {
-    return !nick.empty() && nick.length() < 10; // if nessessary mandatory length of nick could be changed!
+	return (!nick.empty());
+	// if nessessary mandatory length of nick could be changed!
 }
 
 void disconnect_client(int fd)
 {
-    std::cout << "Client disconnected (fd " << fd << ")\n";
-    clients_bj.remove_client(fd);
+	std::cout << "Client disconnected (fd " << fd << ")\n";
+	clients_bj.remove_client(fd);
 }
 
 void pass(Client &client, std::string pass)
 {
-    std::cout << pass << std::endl;
-    if (pass == server_password)
-        client.pass_ok = true;
-    else
-        disconnect_client(client.fd);
+	if (pass == server_password)
+		client.pass_ok = true;
+	else
+		disconnect_client(client.fd);
 }
 void nick(Client &client, std::string nick)
 {
-    std::cout << nick << std::endl;
-    if (!client.pass_ok)
-        disconnect_client(client.fd);
-    else if (!is_valid_nick(nick) || nick_to_fd.count(nick))
-    {
-        send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
-    }
-    else
-    {
-        if (!client.nickname.empty())
-            nick_to_fd.erase(client.nickname);
-        client.nickname = nick;
-        nick_to_fd[nick] = client.fd;
-    }
+	if (!client.pass_ok)
+		disconnect_client(client.fd);
+	else if (!is_valid_nick(nick) || clients_bj.get_nick_to_fd().count(nick))
+	{
+		send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
+	}
+	else
+	{
+		if (!client.nickname.empty())
+			clients_bj.get_nick_to_fd().erase(client.nickname);
+		client.nickname = nick;
+		clients_bj.get_nick_to_fd()[nick] = client.fd;
+	}
 }
 void user(Client &client, std::string user)
 {
-    std::cout << user << std::endl;
-    if (!client.pass_ok)
-        disconnect_client(client.fd);
-    else
-    {
-        client.username = user;
-    }
+	if (!client.pass_ok)
+		disconnect_client(client.fd);
+	else
+	{
+		client.username = user;
+	}
 }
 
 void privmsg(Client &client, std::string message)
 {
-    std::cout << "it does come inside privmsg \n";
-    // message should be stored in sent_buffer of the recepient.
-    // if message is sent to group it should be saved into sent buffer of all of recepients.
-    // the messages should comply with tcp.
-    send_msg(client.fd, message + "\r\n");
+	std::string reciever;
+	std::string rest;
+	std::istringstream iss(message);
+	iss >> reciever;
+	std::getline(iss, rest);
+	rest = rest.substr(2);
+	std::string msg = ":" + client.nickname + " PRIVMSG " + reciever + " :" + rest + "\r\n";
+	send_msg(clients_bj.get_fd_of(reciever), msg);
 }
