@@ -63,8 +63,7 @@ void handle_data(int fd)
 	i = 0;
 	while ((pos = clients_bj.get_client_recieve_buffer(fd).find("\r\n")) != std::string::npos)
 	{
-		std::string line = clients_bj.get_client_recieve_buffer(fd).substr(0,
-																		   pos);
+		std::string line = clients_bj.get_client_recieve_buffer(fd).substr(0, pos);
 		clients_bj.get_client_recieve_buffer(fd).erase(0, pos + 2);
 		handle_command(clients_bj.get_client(fd), line);
 		i++;
@@ -83,12 +82,12 @@ void send_data(std::vector<pollfd> &pollfds, int i)
 	}
 	else if ((size_t)sent < client.send_buffer.size())
 	{
-		client.send_buffer = client.send_buffer.substr(sent); // Remove POLLOUT interest
+		client.send_buffer = client.send_buffer.substr(sent);
 	}
 	else if ((size_t)sent == client.send_buffer.size())
 	{
 		client.send_buffer.clear();
-		pollfds[i].events &= ~POLLOUT; // Remove POLLOUT interest
+		pollfds[i].events &= ~POLLOUT;
 	}
 }
 
