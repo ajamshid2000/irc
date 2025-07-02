@@ -6,7 +6,7 @@
 /*   By: abdul-rashed <abdul-rashed@student.42.f    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/02 01:39:26 by abdul-rashe      ###   ########.fr       */
+/*   Updated: 2025/07/02 23:56:01 by abdul-rashe      ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,6 @@ void send_msg(int fd, const std::string &message)
 			clients_bj.get_pollfds()[i].events |= POLLOUT;
 			break;
 		}
-	clients_bj.add_to_client_send_buffer(fd, "\r\n");
 	clients_bj.add_to_client_send_buffer(fd, message);
 	return;
 }

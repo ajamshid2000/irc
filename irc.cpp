@@ -36,7 +36,7 @@ void handle_command(Client &client, const std::string &line)
 		privmsg(client, rest);
 	else if (cmd == "PING")
 	{
-		send_msg(client.fd, "PONG " + rest);
+		send_msg(client.fd, "PONG server\r\n");
 	}
 	if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
 	{
