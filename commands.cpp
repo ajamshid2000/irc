@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   commands.cpp                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mel-yand <mel-yand@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/14 20:30:04 by mel-yand         ###   ########.fr       */
+/*   Updated: 2025/07/21 17:40:49 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,24 +78,34 @@ void pass(Client &client, std::string pass)
 void nick(Client &client, std::string nick)
 {
 	if (!client.pass_ok)
+	{
+		std::string error = ":server 464 * :Password required\r\n";
+		send(client.fd, error.c_str(), error.size(), 0);
 		disconnect_client(client.fd);
+	}
 	else if (!is_valid_nick(nick) || clients_bj.get_nick_to_fd().count(nick))
 	{
-		send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
+		if (client.registered)
+			send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
+		else
+		{
+			std::string error = ":server 464 * " + nick + " :Nickname is already in use\r\n";
+			send(client.fd, error.c_str(), error.size(), 0);
+			disconnect_client(client.fd);
+		}
 	}
 	else
 	{
-		std::string old_nick = client.nickname;//
-		if (!old_nick.empty())//
+		std::string old_nick = client.nickname; //
+		if (!old_nick.empty())					//
 		{
 			clients_bj.get_nick_to_fd().erase(client.nickname);
-			send_msg(client.fd, ":" + old_nick + " NICK :" + nick + "\r\n"); //send the new name to the client to update it
+			send_msg(client.fd, ":" + old_nick + " NICK :" + nick + "\r\n"); // send the new name to the client to update it
 		}
 		client.nickname = nick;
 		clients_bj.get_nick_to_fd()[nick] = client.fd;
 	}
 }
-
 
 void user(Client &client, std::string user)
 {

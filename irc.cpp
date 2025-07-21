@@ -23,7 +23,8 @@ void handle_command(Client &client, const std::string &line)
 	std::istringstream iss(line);
 	iss >> cmd;
 	std::getline(iss, rest);
-	rest = rest.substr(1);
+	if (rest.size() > 1)
+		rest = rest.substr(1);
 	if (cmd == "CAP" && rest.substr(0, 2) == "LS")
 		send_msg(client.fd, "CAP * LS :\r\n");
 	else if (cmd == "PASS")
