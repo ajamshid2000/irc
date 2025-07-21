@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Clients.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: abdul-rashed <abdul-rashed@student.42.f    +#+  +:+       +#+        */
+/*   By: mel-yand <mel-yand@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 12:56:51 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/01 02:00:37 by abdul-rashe      ###   ########.fr       */
+/*   Updated: 2025/07/14 21:18:19 by mel-yand         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -78,4 +78,9 @@ std::map<std::string, int> &Clients::get_nick_to_fd()
 int Clients::get_fd_of(std::string nick)
 {
     return nick_to_fd[nick];
+}
+
+bool Clients::nickExists(const std::string &nick) const
+{
+    return nick_to_fd.find(nick) != nick_to_fd.end();
 }

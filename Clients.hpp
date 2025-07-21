@@ -15,8 +15,31 @@
 #include <sstream>
 #include <fcntl.h>
 
+#include "Channels.hpp"
+
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 512
+// #define SERVER_NAME "irc.42.fr"
+// #define HOST_NAME "localhost"
+
+// // ----------- FORMAT UTILITAIRE POUR RÉPONSES IRC -----------
+// #define REPLY_FORMAT(num_rply_numb, nickname) (std::string(":") + SERVER_NAME + " " + num_rply_numb + " " + nickname + " ")
+// #define CLIENT_ID(nickname, username, command) (":" + nickname + "!" + username + "@" + SERVER_NAME + " " + command + " ")
+
+// // ----------- RÉPONSES SERVEUR IRC -----------
+
+// // 001 - Welcome
+// #define RPL_WELCOME(nickname) (std::string(":") + SERVER_NAME + " 001 " + nickname + " :Welcome to the " + SERVER_NAME + " Server " + nickname + "\r\n")
+
+// // 400+ - Erreurs essentielles
+// #define ERR_NOSUCHNICK(nickname, other_nickname) (std::string(":") + SERVER_NAME + " 401 " + nickname + " " + other_nickname + " :No such nick\r\n")
+// #define ERR_NOSUCHCHANNEL(nickname, channel) (std::string(":") + SERVER_NAME + " 403 " + nickname + " " + channel + " :No such channel\r\n")
+// #define ERR_NONICKNAMEGIVEN(nickname) (std::string(":") + SERVER_NAME + " 431 *" + nickname + " :No nickname given\r\n")
+// #define ERR_ERRONEUSNICKNAME(nickname) (std::string(":") + SERVER_NAME + " 432 *" + nickname + " Erroneus nickname\r\n")
+// #define ERR_NICKNAMEINUSE(nickname) (std::string(":") + SERVER_NAME + " 433 * " + nickname + "\r\n")
+// #define ERR_NOTREGISTERED(nickname, command) (std::string(":") + SERVER_NAME + " 451 " + nickname + " " + command + " :You have not registered\r\n")
+// #define ERR_PASSWDMISMATCH(nickname) (std::string(":") + SERVER_NAME + " 464 " + nickname + " :Password incorrect\r\n")
+// #define ERR_NEEDMOREPARAMS(nickname, command) (std::string(":") + SERVER_NAME + " 461 " + nickname + " " + command + " :Not enough parameters\r\n")
 
 struct Client
 {
@@ -51,6 +74,8 @@ public:
     std::string &get_client_send_buffer(int fd);
     std::map<std::string, int> &get_nick_to_fd();
     int get_fd_of(std::string nick);
+
+    bool nickExists(const std::string &nick) const;
 };
 
 extern Clients clients_bj;

@@ -1,7 +1,7 @@
 NAME = irc
 CPPFLAGS = -Wall -Wextra -Werror
 INCLUDES = -I ./
-SRCS = irc.cpp commands.cpp irc_parsing_and_init.cpp Clients.cpp
+SRCS = irc.cpp commands.cpp irc_parsing_and_init.cpp Clients.cpp Channels.cpp commands_channel.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 all: $(NAME)

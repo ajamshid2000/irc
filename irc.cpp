@@ -1,4 +1,3 @@
-
 #include "Clients.hpp"
 
 int set_nonblocking(int fd)
@@ -15,6 +14,7 @@ int set_nonblocking(int fd)
 
 Clients clients_bj;
 std::string server_password;
+Channels g_channels;
 
 void handle_command(Client &client, const std::string &line)
 {
@@ -38,6 +38,16 @@ void handle_command(Client &client, const std::string &line)
 	{
 		send_msg(client.fd, "PONG server\r\n");
 	}
+	else if (cmd == "JOIN")
+		join(client, rest);
+	else if (cmd == "TOPIC")
+		topic(client, rest);
+	else if (cmd == "INVITE")
+		invite(client, rest);
+	else if (cmd == "KICK")
+		kick(client, rest);
+	else if (cmd == "MODE")
+		mode(client, rest);
 	if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
 	{
 		client.registered = true;
