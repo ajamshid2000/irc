@@ -6,7 +6,7 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/21 17:40:49 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/24 18:53:02 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,8 @@ PRIVMSG othernick :hello privately
 // modif mel-yand = //
 void send_msg(int fd, const std::string &message)
 {
+	std::map<int, Client> cl = clients_bj.get_clients();
+	std::cout << cl[fd].nickname <<  "message(" << message << ')' << std::endl;
 	for (size_t i = 0; i < clients_bj.get_pollfds().size(); ++i)
 		if (clients_bj.get_pollfds()[i].fd == fd)
 		{

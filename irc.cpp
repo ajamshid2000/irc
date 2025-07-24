@@ -2,11 +2,7 @@
 
 int set_nonblocking(int fd)
 {
-	int flags = fcntl(fd, F_GETFL, 0);
-	if (flags == -1)
-		return -1;
-
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1)
+	if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1)
 		return -1;
 
 	return 0;
@@ -18,6 +14,8 @@ Channels g_channels;
 
 void handle_command(Client &client, const std::string &line)
 {
+	std::cout << line << std::endl;
+
 	std::string cmd;
 	std::string rest;
 	std::istringstream iss(line);
@@ -85,11 +83,9 @@ void send_data(std::vector<pollfd> &pollfds, int i)
 {
 	Client &client = clients_bj.get_client(pollfds[i].fd);
 	ssize_t sent = send(pollfds[i].fd, client.send_buffer.c_str(), client.send_buffer.size(), 0);
-
 	if (sent == -1)
 	{
-		if (errno != EAGAIN && errno != EWOULDBLOCK)
-			disconnect_client(pollfds[i].fd);
+		disconnect_client(pollfds[i].fd);
 	}
 	else if ((size_t)sent < client.send_buffer.size())
 	{
@@ -153,6 +149,7 @@ int main(int argc, char **argv)
 	while (true)
 		if (run_fds(pollfds, listen_fd) < 0)
 			break;
-	close(listen_fd);
+	for (size_t i = 0; i < pollfds.size(); ++i)
+		close(pollfds[i].fd);
 	return (0);
 }

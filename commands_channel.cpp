@@ -121,12 +121,20 @@ void join(Client &client, std::string args)
         for (std::set<int>::const_iterator it = clientsInChannel.begin(); it != clientsInChannel.end(); ++it)
         {
             int fd = *it;
-            send_msg(fd, ":" + client.nickname + " JOIN :" + channelName + "\r\n");
+            send_msg(fd, ":" + client.nickname + "!" + client.nickname + "@localhost" + " JOIN :" + channelName + "\r\n");
         }
 
         std::string topic = g_channels.getTopic(channelName);
         if (!topic.empty())
-            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " :" + topic + "\r\n");
+        {
+            std::cout << "====================================" << std::endl;
+            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " " + topic + "\r\n");
+        }
+        else
+        {
+            std::cout << "---------------------------------------" << std::endl;
+            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " :No topic is set\r\n");
+        }
 
         sendNamesList(client, channelName, clientsInChannel);
     }
@@ -143,6 +151,10 @@ void topic(Client &client, std::string args)
     if (!newTopic.empty() && newTopic[0] == ' ')
         newTopic.erase(0, 1);
 
+    std::cout << "[TOPIC DEBUG] args: \"" << args << "\"" << std::endl;
+    std::cout << "[TOPIC DEBUG] channelName: \"" << channelName << "\"" << std::endl;
+    std::cout << "[TOPIC DEBUG] newTopic: \"" << newTopic << "\"" << std::endl;//
+    
     if (channelName.empty())
     {
         send_msg(client.fd, ":server 461 " + client.nickname + " TOPIC :Not enough parameters\r\n");
@@ -160,17 +172,20 @@ void topic(Client &client, std::string args)
     }
     if (!newTopic.empty())
     {
+        
         g_channels.setTopic(channelName, newTopic);
         const std::set<int> &clients = g_channels.getClientsInChannel(channelName);
 
         for (std::set<int>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-            send_msg(*it, ":" + client.nickname + " TOPIC " + channelName + " :" + newTopic + "\r\n");
+            send_msg(*it, ":" + client.nickname + "!" + client.nickname + "@localhost" + " TOPIC " + channelName + " " + newTopic + "\r\n");
     }
     else
+    {
         if(!g_channels.hasTopic(channelName))
-            send_msg(client.fd, ":server 331 " + client.nickname + " " + channelName + " :No topic is set\r\n");
+            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " :No topic is set\r\n");
         else
-            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " :" + g_channels.getTopic(channelName) + "\r\n");
+            send_msg(client.fd, ":server 332 " + client.nickname + " " + channelName + " " + g_channels.getTopic(channelName) + "\r\n");
+    }
 }
 
 void invite(Client &client, std::string args)
