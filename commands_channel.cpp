@@ -329,13 +329,14 @@ bool isValidLimit(const std::string &param)
 
 void mode(Client &client, std::string args)
 {
-    (void)client;
     std::istringstream iss(args);
     std::string channelName, modes, argStr;
     iss >> channelName >> modes;
 
-    std::getline(iss, argStr);
-    std::vector<std::string> param = split(argStr, ' ');
+    std::string tmp;
+    std::vector<std::string> param;
+    while (iss >> tmp)
+        param.push_back(tmp);
 
     std::cout << "[MODE DEBUG] args: \"" << args << "\"" << std::endl;
     std::cout << "[MODE DEBUG] channelName: \"" << channelName<< "\"" << std::endl;
