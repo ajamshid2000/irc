@@ -6,7 +6,7 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/24 18:53:02 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/27 16:26:30 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,10 @@ PRIVMSG othernick :hello privately
 */
 // IRC SERVER TO CONNECT FOR CHECKING
 // irssi -c Irc.oftc.net -p 6697 -n yournickname
+// /dcc get sender_nick
+// /set dcc_download_path on/off (leave empty if you want to knwo current settings)
+// /set dcc_autoget on/off (leave empty if you want to knwo current settings)
+//for file transfer (/dcc send reciever_nick ~/Desktop/...)
 
 #include "Clients.hpp"
 
@@ -177,6 +181,6 @@ void privmsg(Client &client, std::string message)
         return;
     }
 
-    std::string msg = ":" + client.nickname + " PRIVMSG " + reciever + " :" + rest + "\r\n";
+    std::string msg = ":" + client.nickname + "!" + client.username + "@localhost " + " PRIVMSG " + reciever + " :" + rest + "\r\n";
     send_msg(dest_fd, msg);
 }

@@ -1,4 +1,20 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   irc.cpp                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/27 16:05:54 by ajamshid          #+#    #+#             */
+/*   Updated: 2025/07/27 16:42:29 by ajamshid         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Clients.hpp"
+
+Clients clients_bj;
+std::string server_password;
+Channels g_channels;
 
 int set_nonblocking(int fd)
 {
@@ -7,10 +23,13 @@ int set_nonblocking(int fd)
 
 	return 0;
 }
-
-Clients clients_bj;
-std::string server_password;
-Channels g_channels;
+std::string get_username(std::string rest)
+{
+	std::string username;
+	std::istringstream iss(rest);
+	iss >> username;
+	return username;
+}
 
 void handle_command(Client &client, const std::string &line)
 {
@@ -30,7 +49,7 @@ void handle_command(Client &client, const std::string &line)
 	else if (cmd == "NICK")
 		nick(client, rest);
 	else if (cmd == "USER")
-		user(client, rest);
+		user(client, get_username(rest));
 	else if (cmd == "PRIVMSG")
 		privmsg(client, rest);
 	else if (cmd == "PING")
@@ -129,6 +148,16 @@ int run_fds(std::vector<pollfd> &pollfds, int listen_fd)
 	return 0;
 }
 
+void reciever(int sig)
+{
+	if (sig == SIGINT)
+	{
+		for (size_t i = 0; i < clients_bj.get_pollfds().size(); ++i)
+			close(clients_bj.get_pollfds()[i].fd);
+		exit(1);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	int port;
@@ -143,6 +172,14 @@ int main(int argc, char **argv)
 		return (0);
 	if (set_nonblocking(listen_fd) < 0)
 		return 0;
+
+	struct sigaction sa;
+	sa.sa_handler = reciever;
+	sigemptyset(&sa.sa_mask);
+	sa.sa_flags = 0;
+	if (sigaction(SIGINT, &sa, 0) == -1)
+		std::cerr << "sigaction: error handling signal." << std::endl;
+
 	std::cout << "Server started on port " << port << "\n";
 	std::vector<pollfd> &pollfds = clients_bj.get_pollfds();
 	pollfds.push_back((pollfd){listen_fd, POLLIN, 0});

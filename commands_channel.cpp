@@ -121,7 +121,7 @@ void join(Client &client, std::string args)
         for (std::set<int>::const_iterator it = clientsInChannel.begin(); it != clientsInChannel.end(); ++it)
         {
             int fd = *it;
-            send_msg(fd, ":" + client.nickname + "!" + client.nickname + "@localhost" + " JOIN :" + channelName + "\r\n");
+            send_msg(fd, ":" + client.nickname + "!" + client.username + "@localhost" + " JOIN :" + channelName + "\r\n");
         }
 
         std::string topic = g_channels.getTopic(channelName);
@@ -177,7 +177,7 @@ void topic(Client &client, std::string args)
         const std::set<int> &clients = g_channels.getClientsInChannel(channelName);
 
         for (std::set<int>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-            send_msg(*it, ":" + client.nickname + "!" + client.nickname + "@localhost" + " TOPIC " + channelName + " " + newTopic + "\r\n");
+            send_msg(*it, ":" + client.nickname + "!" + client.username + "@localhost" + " TOPIC " + channelName + " " + newTopic + "\r\n");
     }
     else
     {
@@ -440,7 +440,8 @@ void mode(Client &client, std::string args)
     
     if (modesStr.size() <= 1)
         return;
-    std::string msg = ":" + client.nickname + "!user@host MODE " + channelName + " " + modesStr;
+    std::string msg = ":" + client.nickname + "!" + client.username + "@localhost MODE " + channelName + " " + modesStr;
+    // std::string msg = ":" + client.nickname + "!user@host MODE " + channelName + " " + modesStr;
     if (!paramStr.empty())
         msg += " " + paramStr;
     msg += "\r\n";

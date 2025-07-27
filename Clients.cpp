@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Clients.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mel-yand <mel-yand@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 12:56:51 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/14 21:18:19 by mel-yand         ###   ########.fr       */
+/*   Updated: 2025/07/27 16:45:03 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,6 +34,7 @@ int Clients::remove_client(int fd)
 		if (pollfds[i].fd == fd)
 			// i could delete it in the disconnect function. no neet to do all of these
 			pollfds.erase(pollfds.begin() + i);
+	close(fd);
 	return (0);
 }
 

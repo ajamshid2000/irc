@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Clients.hpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/07/27 16:06:31 by ajamshid          #+#    #+#             */
+/*   Updated: 2025/07/27 16:06:35 by ajamshid         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
@@ -14,6 +26,7 @@
 #include <sys/socket.h>
 #include <sstream>
 #include <fcntl.h>
+#include <signal.h>
 
 #include "Channels.hpp"
 
