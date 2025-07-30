@@ -6,7 +6,7 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/27 16:06:31 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/27 16:06:35 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/30 19:42:51 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 512
 // #define SERVER_NAME "irc.42.fr"
-// #define HOST_NAME "localhost"
+// #define HOST_NAME "ircserv"
 
 // // ----------- FORMAT UTILITAIRE POUR RÉPONSES IRC -----------
 // #define REPLY_FORMAT(num_rply_numb, nickname) (std::string(":") + SERVER_NAME + " " + num_rply_numb + " " + nickname + " ")
@@ -64,6 +64,7 @@ struct Client
     std::string channels;
     std::string recieve_buffer;
     std::string send_buffer;
+    bool disconnect = 0;
 };
 
 class Clients
@@ -104,5 +105,6 @@ void pass(Client &client, std::string pass);
 void nick(Client &client, std::string nick);
 void user(Client &client, std::string user);
 void privmsg(Client &client, std::string message);
+void notice(Client &client, std::string message);
 
 #endif

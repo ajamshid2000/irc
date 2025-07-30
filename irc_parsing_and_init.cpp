@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   irc_parsing_and_init.cpp                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: abdul-rashed <abdul-rashed@student.42.f    +#+  +:+       +#+        */
+/*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/30 17:22:05 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/01 02:13:02 by abdul-rashe      ###   ########.fr       */
+/*   Updated: 2025/07/30 16:42:11 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -53,12 +53,12 @@ int socket_prep_and_binding(int port)
         return -1;
     }
     int opt = 1;
-    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // we set options(to make the port immediatly reusable after quiting the server)
+    setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); // we set options(to make the port immediatly reusable after quiting the ircserv)
     // we bind the socket to a port and ip (we tell the operating system that cirtain port and ip will be used by this socket)
     sockaddr_in addr;
     addr.sin_family = AF_INET;         // again for ipv4 (AF_INET6(ipv6))
     addr.sin_port = htons(port);       // to change port into network byte order/ to coply with internet protocol
-    addr.sin_addr.s_addr = INADDR_ANY; // bind this server to all ip addresses this machine has (localhost(127.0.0.1), lan, or public ip) so to use localhost we do inet_addr("192.168.1.42")
+    addr.sin_addr.s_addr = INADDR_ANY; // bind this ircserv to all ip addresses this machine has (ircserv(127.0.0.1), lan, or public ip) so to use ircserv we do inet_addr("192.168.1.42")
     if (bind(listen_fd, (sockaddr *)&addr, sizeof(addr)) < 0)
     {
         perror("bind");

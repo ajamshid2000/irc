@@ -6,13 +6,13 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/27 15:16:19 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/27 16:26:30 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/30 19:59:31 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 // :yournickname!yourident@yourhost PRIVMSG otheruser :Hello
 // 433 * NewNickname :Nickname is already in use
-// client to server
+// client to ircserv
 /*
 NICK yournickname
 USER yournick 0 * :Your Real Name
@@ -20,9 +20,9 @@ JOIN #channel
 PRIVMSG #channel :hello everyone
 PRIVMSG othernick :hello privately
 */
-// server to client
+// ircserv to client
 /*
-:irc.example.com/localhost/127.0.0.1 001 yournickname :Welcome to the IRC
+:irc.example.com/ircserv/127.0.0.1 001 yournickname :Welcome to the IRC
 :yournickname!user@host PRIVMSG #channel :hello everyone
 :yournickname!user@host PRIVMSG othernick :hello privately
 */
@@ -31,7 +31,7 @@ PRIVMSG othernick :hello privately
 // /dcc get sender_nick
 // /set dcc_download_path on/off (leave empty if you want to knwo current settings)
 // /set dcc_autoget on/off (leave empty if you want to knwo current settings)
-//for file transfer (/dcc send reciever_nick ~/Desktop/...)
+// for file transfer (/dcc send reciever_nick ~/Desktop/...)
 
 #include "Clients.hpp"
 
@@ -39,7 +39,7 @@ PRIVMSG othernick :hello privately
 void send_msg(int fd, const std::string &message)
 {
 	std::map<int, Client> cl = clients_bj.get_clients();
-	std::cout << cl[fd].nickname <<  "message(" << message << ')' << std::endl;
+	std::cout << cl[fd].nickname << "message(" << message << ')' << std::endl;
 	for (size_t i = 0; i < clients_bj.get_pollfds().size(); ++i)
 		if (clients_bj.get_pollfds()[i].fd == fd)
 		{
@@ -52,8 +52,7 @@ void send_msg(int fd, const std::string &message)
 
 bool is_valid_nick(const std::string &nick)
 {
-	return (!nick.empty());
-	// if nessessary mandatory length of nick could be changed!
+	return (!nick.empty() && nick.size() < 9 && nick[0] <= 'z' && nick[0] >= 'a');
 }
 
 void disconnect_client(int fd)
@@ -64,9 +63,9 @@ void disconnect_client(int fd)
 
 void pass(Client &client, std::string pass)
 {
-	if (client.registered)//
+	if (client.registered) //
 	{
-		send_msg(client.fd, ":server 462 * :You may not reregister\r\n");//
+		send_msg(client.fd, ":ircserv 462 * :You may not reregister\r\n"); //
 		return;
 	}
 	if (pass == server_password)
@@ -76,8 +75,8 @@ void pass(Client &client, std::string pass)
 	}
 	else
 	{
-		disconnect_client(client.fd);
-		send_msg(client.fd, ":server 464 * :Password required\r\n");//
+		client.disconnect = 1;
+		send_msg(client.fd, ":ircserv 464 * :Password required\r\n"); //
 	}
 }
 
@@ -85,19 +84,19 @@ void nick(Client &client, std::string nick)
 {
 	if (!client.pass_ok)
 	{
-		std::string error = ":server 464 * :Password required\r\n";
+		std::string error = ":ircserv 464 * :Password required\r\n";
 		send(client.fd, error.c_str(), error.size(), 0);
-		disconnect_client(client.fd);
+		client.disconnect = 1;
 	}
 	else if (!is_valid_nick(nick) || clients_bj.get_nick_to_fd().count(nick))
 	{
 		if (client.registered)
-			send_msg(client.fd, ":server 433 * " + nick + " :Nickname is already in use\r\n");
+			send_msg(client.fd, ":ircserv 433 * " + nick + " :Nickname is already in use\r\n");
 		else
 		{
-			std::string error = ":server 464 * " + nick + " :Nickname is already in use\r\n";
-			send(client.fd, error.c_str(), error.size(), 0);
-			disconnect_client(client.fd);
+			std::string error = ":ircserv 433 * " + nick + " :Nickname is already in use\r\n";
+			send_msg(client.fd, error);
+			client.disconnect = 1;
 		}
 	}
 	else
@@ -127,60 +126,76 @@ void user(Client &client, std::string user)
 void privmsg(Client &client, std::string message)
 {
 	std::string reciever;
-    std::string rest;
-    std::istringstream iss(message);
-    iss >> reciever;
-    std::getline(iss, rest);
-	
-	if (reciever.empty()) {
+	std::string rest;
+	std::istringstream iss(message);
+	iss >> reciever;
+	std::getline(iss, rest);
+
+	if (reciever.empty())
+	{
 		std::cout << ">> pas de destinataire" << std::endl;
-		send_msg(client.fd, ":server 411 " + client.nickname + " :No recipient given (PRIVMSG)\r\n");
-    	return;
+		send_msg(client.fd, ":ircserv 411 " + client.nickname + " :No recipient given (PRIVMSG)\r\n");
+		return;
 	}
-	if (rest.empty()) {
+	if (rest.empty())
+	{
 		std::cout << ">> pas de message" << std::endl;
-    	send_msg(client.fd, ":server 412 " + client.nickname + " :No text to send\r\n");
-    	return;
+		send_msg(client.fd, ":ircserv 412 " + client.nickname + " :No text to send\r\n");
+		return;
 	}
 
-    if (rest.size() >= 2 && rest[0] == ' ' && rest[1] == ':')
-        rest = rest.substr(2);
-    else if (!rest.empty() && rest[0] == ' ') {
-        rest = rest.substr(1);
+	if (rest.size() >= 2 && rest[0] == ' ' && rest[1] == ':')
+		rest = rest.substr(2);
+	else if (!rest.empty() && rest[0] == ' ')
+	{
+		rest = rest.substr(1);
 	}
 
 	if (!reciever.empty() && reciever[0] == '#')
-    {
-        if (!g_channels.channelExists(reciever))
-        {
-            send_msg(client.fd, ":server 403 " + client.nickname + " " + reciever + " :No such channel\r\n");
-            return;
-        }
+	{
+		if (!g_channels.channelExists(reciever))
+		{
+			send_msg(client.fd, ":ircserv 403 " + client.nickname + " " + reciever + " :No such channel\r\n");
+			return;
+		}
 
-        const std::set<int> &clients = g_channels.getClientsInChannel(reciever);
-        if (clients.find(client.fd) == clients.end())
-        {
-            send_msg(client.fd, ":server 442 " + client.nickname + " " + reciever + " :You're not on that channel\r\n");
-            return;
-        }
+		const std::set<int> &clients = g_channels.getClientsInChannel(reciever);
+		if (clients.find(client.fd) == clients.end())
+		{
+			send_msg(client.fd, ":ircserv 442 " + client.nickname + " " + reciever + " :You're not on that channel\r\n");
+			return;
+		}
 
-        std::string msg = ":" + client.nickname + " PRIVMSG " + reciever + " :" + rest + "\r\n";
-        for (std::set<int>::const_iterator it = clients.begin(); it != clients.end(); ++it)
-        {
-            if (*it != client.fd)
-                send_msg(*it, msg);
-        }
-        return;
-    }
-		
-    int dest_fd = clients_bj.get_fd_of(reciever);
-    if (dest_fd == -1)
-    {
+		std::string msg = ":" + client.nickname + " PRIVMSG " + reciever + " :" + rest + "\r\n";
+		for (std::set<int>::const_iterator it = clients.begin(); it != clients.end(); ++it)
+		{
+			if (*it != client.fd)
+				send_msg(*it, msg);
+		}
+		return;
+	}
+
+	int dest_fd = clients_bj.get_fd_of(reciever);
+	if (dest_fd == -1)
+	{
 		std::cout << ">> pas trouver le  destinataire" << std::endl;
-        send_msg(client.fd, ":server 401 " + client.nickname + " " + reciever + " :No such nick\r\n");
-        return;
-    }
+		send_msg(client.fd, ":ircserv 401 " + client.nickname + " " + reciever + " :No such nick\r\n");
+		return;
+	}
 
-    std::string msg = ":" + client.nickname + "!" + client.username + "@localhost " + " PRIVMSG " + reciever + " :" + rest + "\r\n";
-    send_msg(dest_fd, msg);
+	std::string msg = ":" + client.nickname + "!" + client.username + "@ircserv " + " PRIVMSG " + reciever + " :" + rest + "\r\n";
+	send_msg(dest_fd, msg);
+}
+
+void notice(Client &client, std::string message)
+{
+	std::string reciever;
+	std::string rest;
+	std::string msg;
+	std::istringstream iss(message);
+	iss >> reciever;
+	std::getline(iss, rest);
+	rest = rest.substr(2);
+	msg = ":" + client.nickname + "!" + client.username + "@ircserv " + " NOTICE " + reciever + " :" + rest + "\r\n";
+	send_msg(clients_bj.get_fd_of(reciever), msg);
 }

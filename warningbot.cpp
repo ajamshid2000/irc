@@ -6,7 +6,7 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/23 19:31:14 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/23 19:57:05 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/30 16:42:11 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -82,7 +82,7 @@ void handle_command(const std::string &line)
         rest = rest.substr(1);
     if (cmd[0] == ':')
     {
-        if (std::string(cmd.c_str() + 1) == "server")
+        if (std::string(cmd.c_str() + 1) == "ircserv")
             std::cout << rest.c_str() + rest.find(':') + 1 << std::endl;
         else
         {
@@ -115,7 +115,7 @@ int handle_bot_data(int fd)
     bytes = recv(fd, buf, BUFFER_SIZE, 0);
     if (bytes <= 0)
     {
-        std::cerr << "server disconnected" << std::endl;
+        std::cerr << "ircserv disconnected" << std::endl;
         return (-1);
     }
     warning_bot.recieve_buffer += buf;
@@ -129,7 +129,7 @@ int handle_bot_data(int fd)
     }
     if ((warning_bot.recieve_buffer.find(EOF)) != std::string::npos)
     {
-        std::cerr << "server disconnected1" << std::endl;
+        std::cerr << "ircserv disconnected1" << std::endl;
         return (-1);
     }
     return 0;
@@ -205,7 +205,7 @@ int socket_prep_and_connect(int port)
     sockaddr_in addr;
     addr.sin_family = AF_INET;         // again for ipv4 (AF_INET6(ipv6))
     addr.sin_port = htons(port);       // to change port into network byte order/ to coply with internet protocol
-    addr.sin_addr.s_addr = INADDR_ANY; // bind this server to all ip addresses this machine has (localhost(127.0.0.1), lan, or public ip) so to use localhost we do inet_addr("192.168.1.42")
+    addr.sin_addr.s_addr = INADDR_ANY; // bind this ircserv to all ip addresses this machine has (ircserv(127.0.0.1), lan, or public ip) so to use ircserv we do inet_addr("192.168.1.42")
     if (connect(fd, (sockaddr *)&addr, sizeof(addr)) < 0)
     {
         perror("connect");
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
         perror("fcntl");
         return 0;
     }
-    std::cout << "connected to the server" << std::endl;
+    std::cout << "connected to the ircserv" << std::endl;
     pollfds = (struct pollfd){fd, POLLIN, 0};
     send_bot_msg("PASS " + server_password + "\r\nNICK warningbot\r\nUSER warningbot\r\n");
     while (true)

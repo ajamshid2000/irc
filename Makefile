@@ -1,4 +1,4 @@
-NAME = irc
+NAME = ircserv
 BONUS = bot
 CPPFLAGS = -Wall -Wextra -Werror
 INCLUDES = -I ./

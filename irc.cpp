@@ -6,7 +6,7 @@
 /*   By: ajamshid <ajamshid@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/27 16:05:54 by ajamshid          #+#    #+#             */
-/*   Updated: 2025/07/27 16:42:29 by ajamshid         ###   ########.fr       */
+/*   Updated: 2025/07/30 19:57:20 by ajamshid         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,8 +33,9 @@ std::string get_username(std::string rest)
 
 void handle_command(Client &client, const std::string &line)
 {
-	std::cout << line << std::endl;
-
+	std::cout <<"---------" + line + "---------" << std::endl;
+	if(client.disconnect)
+		return;
 	std::string cmd;
 	std::string rest;
 	std::istringstream iss(line);
@@ -52,9 +53,11 @@ void handle_command(Client &client, const std::string &line)
 		user(client, get_username(rest));
 	else if (cmd == "PRIVMSG")
 		privmsg(client, rest);
+	else if (cmd == "NOTICE")
+		notice(client, rest);
 	else if (cmd == "PING")
 	{
-		send_msg(client.fd, "PONG server\r\n");
+		send_msg(client.fd, "PONG ircserv\r\n");
 	}
 	else if (cmd == "JOIN")
 		join(client, rest);
@@ -69,7 +72,7 @@ void handle_command(Client &client, const std::string &line)
 	if (client.pass_ok && !client.nickname.empty() && !client.username.empty() && !client.registered)
 	{
 		client.registered = true;
-		send_msg(client.fd, ":server 001 " + client.nickname + " :Welcome to the IRC server\r\n");
+		send_msg(client.fd, ":ircserv 001 " + client.nickname + " :Welcome to the IRC ircserv\r\n");
 	}
 }
 
@@ -114,6 +117,12 @@ void send_data(std::vector<pollfd> &pollfds, int i)
 	{
 		client.send_buffer.clear();
 		pollfds[i].events &= ~POLLOUT;
+	}
+	if(client.disconnect == 1)
+	{ 
+		usleep(100000);
+		shutdown(client.fd, SHUT_RDWR);
+		disconnect_client(client.fd);
 	}
 }
 
